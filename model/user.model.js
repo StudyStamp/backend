@@ -32,7 +32,10 @@ const userSchema = new Schema({
     attendance_goal: {
         type: Number,
         default: 0
-    }
+    },
+    fcmToken: {
+        type: String
+    },
 }, {timestamps: true});
 
 const User = mongoose.model('User', userSchema);

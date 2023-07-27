@@ -1,5 +1,26 @@
 const mongoose = require('mongoose');
 
+
+const scheduleSchema = new mongoose.Schema({
+    day: {
+        type: String,
+        enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        required: true
+    },
+    startTime: {
+        type: Date,
+        required: true
+    },
+    endTime: {
+        type: Date,
+        required: true
+    },
+    notificationSent: {
+        type: Boolean,
+        default: false
+    }
+});
+
 const subjectSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -18,25 +39,7 @@ const subjectSchema = new mongoose.Schema({
         ref: 'User', // Reference to the User model
         required: true
     },
-    schedule: [{
-        day: {
-            type: String,
-            enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            required: true
-        },
-        startTime: {
-            type: Date,
-            required: true
-        },
-        endTime: {
-            type: Date,
-            required: true
-        }
-    }],
-    notificationSent: {
-        type: Boolean,
-        default: false
-    }
+    schedule: [scheduleSchema]
 }, {timestamps: true});
 
 const Subject = mongoose.model('Subject', subjectSchema);

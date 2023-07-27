@@ -3,8 +3,24 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/jwtAuth');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const admin = require('firebase-admin');
+const Subject = require('../model/subject.model');
 require("dotenv").config();
+
+// Function to generate and store FCM token during user registration
+async function generateAndStoreFcmToken(userId) {
+    try {
+        // Get the FCM token using the Firebase Admin SDK
+        const fcmToken = await admin.messaging().getToken(userId);
+    
+        // Update the user with the generated FCM token
+        await User.findByIdAndUpdate(userId, { fcmToken });
+    
+        console.log('FCM token generated and stored for user:', userId);
+    } catch (error) {
+        console.error('Error generating/storing FCM token:', error);
+    }
+}
 
 exports.get = async (req, res) => {
     try {
@@ -99,15 +115,16 @@ exports.register = async (req, res) => {
         });
 
         // Save the new user to the database
-        await newUser.save();
+        const savedUser = await newUser.save();
 
+        await generateAndStoreFcmToken(savedUser._id);
         // Return a success message
         return res.status(201).json({
             success: true,
             type: "success",
             status: 201,
             message: 'User registered successfully!',
-            user: newUser
+            user: savedUser
         });
     } catch (error) {
         return res.status(500).json({
@@ -250,3 +267,49 @@ exports.reset_password = async (req, res) => {
         });
     }
 }
+
+exports.fetchLowAttdSubjects = async (req, res) => {
+    const userId = req.body.user._id;
+  
+    try {
+        // Fetch the user with the specified userId
+        const user = await User.findById(userId).exec();
+    
+        if (!user) {
+            return res.status(404).json({
+                status: 404,
+                success: false,
+                type: "warning",
+                message: 'User not found.'
+            });
+        }
+    
+        // Fetch the subjects for the user with the specified userId
+        const subjects = await Subject.find({ user_id: userId }).exec();
+    
+        // Filter the subjects based on the attendance_goal
+        const filteredSubjects = subjects.filter(subject => {
+            const attendancePercentage = (subject.present / subject.total) * 100;
+            const attendancePercentageRounded = parseFloat(attendancePercentage.toFixed(1));
+            const attendanceGoalRounded = parseFloat(user.attendance_goal.toFixed(1));
+            return attendancePercentageRounded < attendanceGoalRounded;
+            // return attendancePercentage < user.attendance_goal;
+        });
+    
+        return res.status(200).json({
+            status: 200,
+            success: true,
+            type: "success",
+            subjects: filteredSubjects,
+            message: "Subjects a low attendance fetched successfuly."
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            status: 500,
+            message: 'An error occurred while fetching subjects for the user.',
+            error: error.message
+        });
+    }
+};
+  

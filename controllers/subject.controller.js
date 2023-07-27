@@ -21,7 +21,7 @@ exports.create = async (req, res) => {
             success: true,
             type: "success",
             status: 201,
-            message: 'Subject created with schedule successfully!',
+            message: 'Subject created successfully!',
             subject: savedSubject
         });
     } catch (error) {
@@ -55,7 +55,7 @@ exports.getSubjectsByUserId = async (req, res) => {
             type: "success",
             status: 200,
             message: 'Subjects retrieved successfully!',
-            subjects
+            subjects: subjects.reverse()
         });
     } catch (error) {
         res.status(500).json({
@@ -72,6 +72,8 @@ exports.update = async (req, res) => {
     const { _id, name, user_id, present, total, schedule } = req.body;
   
     try {
+        const updatedSchedule = schedule.map(item => ({ ...item, notificationSent: false }));
+
         const updatedSubject = await Subject.findByIdAndUpdate(
             _id,
             {
@@ -79,7 +81,7 @@ exports.update = async (req, res) => {
                 user_id,
                 present,
                 total,
-                schedule
+                schedule: updatedSchedule
             },
             { new: true }
         );
